@@ -1,7 +1,9 @@
 #pragma once
 
-
 #include <cuda_runtime.h>
+
+#include <iostream>
+#include <stdexcept>
 
 
 class GPUMemoryPool
@@ -10,7 +12,7 @@ class GPUMemoryPool
 
 private:
 
-    char* memory;
+    char* buffer;
 
     size_t capacity;
 
@@ -22,15 +24,34 @@ public:
 
 
     GPUMemoryPool(size_t bytes)
-        :
-        capacity(bytes),
-        offset(0)
     {
 
-        cudaMalloc(
-            &memory,
-            bytes
-        );
+        capacity = bytes;
+
+        offset = 0;
+
+
+        cudaError_t err =
+            cudaMalloc(
+                &buffer,
+                bytes
+            );
+
+
+        if(err != cudaSuccess)
+        {
+
+            throw std::runtime_error(
+                "Could not allocate GPU pool"
+            );
+
+        }
+
+
+        std::cout
+        << "GPU Memory Pool initialized: "
+        << bytes/(1024*1024)
+        << " MB\n";
 
     }
 
@@ -39,7 +60,7 @@ public:
     ~GPUMemoryPool()
     {
 
-        cudaFree(memory);
+        cudaFree(buffer);
 
     }
 
@@ -53,17 +74,20 @@ public:
         {
 
             throw std::runtime_error(
-                "Pool exhausted"
+                "GPU memory pool exhausted"
             );
 
         }
 
 
+
         void* ptr =
-            memory + offset;
+            buffer + offset;
+
 
 
         offset += bytes;
+
 
 
         return ptr;
@@ -78,5 +102,15 @@ public:
         offset=0;
 
     }
+
+
+
+    size_t used()
+    {
+
+        return offset;
+
+    }
+
 
 };
