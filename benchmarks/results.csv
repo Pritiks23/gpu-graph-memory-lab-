@@ -1,9 +1,9 @@
-allocator,dataset,nodes,edges,iterations,total_time_ms,avg_iteration_ms,memory_MB
+allocator,dataset,iterations,runtime_ms
 
-cudaMalloc,cit-HepTh,27770,352807,100,0,0,0
+cudaMalloc,cit-HepTh,100,0
 
-cudaMallocAsync,cit-HepTh,27770,352807,100,0,0,0
+cudaMallocAsync,cit-HepTh,100,0
 
-memory_pool,cit-HepTh,27770,352807,100,0,0,0
+memory_pool,cit-HepTh,100,0
 
-unified_memory,cit-HepTh,27770,352807,100,0,0,0
+unified_memory,cit-HepTh,100,0
