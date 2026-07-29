@@ -1,8 +1,11 @@
 #include <iostream>
 #include <string>
 
+
 #include "graph.h"
 #include "benchmark.h"
+#include "memory_pool.h"
+
 
 
 float runPageRankCudaMalloc(
@@ -12,26 +15,54 @@ float runPageRankCudaMalloc(
 
 
 
-int main(int argc, char** argv)
+int main(int argc,char** argv)
 {
 
 
-    std::cout
-        << "====================================\n"
-        << "GPU Graph Memory Optimization Lab\n"
-        << "====================================\n\n";
+    Benchmark::printGPUInfo();
 
+
+
+    std::string allocator =
+        "cudaMalloc";
 
 
     std::string graph_file =
-        "data/cit-HepTh.txt";
+        "../data/cit-HepTh.txt";
 
 
 
-    if(argc > 1)
+    for(int i=1;i<argc;i++)
     {
-        graph_file = argv[1];
+
+        std::string arg = argv[i];
+
+
+        if(arg=="--allocator")
+        {
+
+            allocator =
+                argv[++i];
+
+        }
+
+
+        if(arg=="--graph")
+        {
+
+            graph_file =
+                argv[++i];
+
+        }
+
     }
+
+
+
+    std::cout
+    << "\nAllocator: "
+    << allocator
+    << "\n";
 
 
 
@@ -48,62 +79,70 @@ int main(int argc, char** argv)
 
 
 
-    std::cout
-        << "\nRunning PageRank\n"
-        << "Iterations: "
-        << iterations
-        << "\n\n";
-
-
-
-    size_t free_before =
+    size_t before =
         Benchmark::getFreeMemory();
 
 
 
-    float runtime =
+    float runtime;
+
+
+
+    if(allocator=="cudaMalloc")
+    {
+
+        runtime =
         runPageRankCudaMalloc(
             graph,
             iterations
         );
 
+    }
 
 
-    size_t free_after =
+    else
+    {
+
+        std::cout
+        <<
+        "Allocator not implemented yet\n";
+
+
+        return 0;
+
+    }
+
+
+
+    size_t after =
         Benchmark::getFreeMemory();
 
 
 
     std::cout
-        << "====================================\n"
-        << "Results\n"
-        << "====================================\n";
+    << "\n========== RESULTS ==========\n";
 
 
     std::cout
-        << "Allocator: cudaMalloc\n";
+    << "Runtime: "
+    << runtime
+    << " ms\n";
 
 
     std::cout
-        << "Runtime: "
-        << runtime
-        << " ms\n";
-
-
-
-    std::cout
-        << "Average iteration: "
-        << runtime / iterations
-        << " ms\n";
-
+    << "Avg iteration: "
+    << runtime/iterations
+    << " ms\n";
 
 
     std::cout
-        << "GPU memory change: "
-        << (free_before-free_after)
-        /1024.0/1024.0
-        << " MB\n";
-
+    << "Memory used: "
+    << (before-after)
+       /
+       1024.0
+       /
+       1024.0
+    << " MB\n";
 
 
     return 0;
