@@ -4,32 +4,21 @@
 set -e
 
 
-
-echo "Building project..."
-
-
-
-mkdir -p build
-
-cd build
+ALLOCATORS=(
+cudaMalloc
+cudaMallocAsync
+unified_memory
+)
 
 
-cmake ..
+for allocator in "${ALLOCATORS[@]}"
+do
 
-make -j$(nproc)
+echo "Running $allocator"
 
-
-
-cd ..
-
-
-
-echo "Running cudaMalloc benchmark"
 
 ./build/graph_benchmark \
---allocator cudaMalloc \
---graph data/cit-HepTh.txt
+--allocator $allocator
 
 
-
-echo "Benchmark complete"
+done
