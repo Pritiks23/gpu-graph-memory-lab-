@@ -1,6 +1,3 @@
-# 2. `CMakeLists.txt`
-
-```cmake
 cmake_minimum_required(VERSION 3.18)
 
 project(
@@ -8,13 +5,10 @@ project(
     LANGUAGES CXX CUDA
 )
 
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
 
-
 find_package(CUDAToolkit REQUIRED)
-
 
 add_executable(
     graph_benchmark
@@ -23,13 +17,11 @@ add_executable(
     src/pagerank.cu
 )
 
-
 target_include_directories(
     graph_benchmark
     PRIVATE
     src
 )
-
 
 target_link_libraries(
     graph_benchmark
@@ -37,10 +29,8 @@ target_link_libraries(
     CUDA::cudart
 )
 
-
 set_target_properties(
     graph_benchmark
     PROPERTIES
-
     CUDA_SEPARABLE_COMPILATION ON
 )
