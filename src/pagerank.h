@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "graph.h"
 
 
@@ -20,7 +19,11 @@ enum class AllocatorType
 
 
 float runPageRank(
+
     CSRGraph& graph,
+
     int iterations,
-    AllocatorType type
+
+    AllocatorType allocator
+
 );
