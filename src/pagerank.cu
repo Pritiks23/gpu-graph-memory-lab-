@@ -1,21 +1,48 @@
 #include "pagerank.h"
 
+#include "allocator.h"
 #include "memory_pool.h"
 
-
 #include <cuda_runtime.h>
+
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 
+#define CUDA_CHECK(call)                                      \
+do                                                           \
+{                                                            \
+    cudaError_t err = call;                                  \
+    if(err != cudaSuccess)                                   \
+    {                                                        \
+        std::cerr                                             \
+        << "CUDA ERROR: "                                     \
+        << cudaGetErrorString(err)                            \
+        << std::endl;                                         \
+        exit(EXIT_FAILURE);                                   \
+    }                                                        \
+} while(0)
+
+
+
+// ============================================================
+// CUDA PageRank Kernel
+//
+// SAME kernel for every memory strategy.
+//
+// Only allocation changes.
+//
+// ============================================================
 
 __global__
 void pagerank_kernel(
 
-    int* row_offsets,
+    const int* row_offsets,
 
-    int* columns,
+    const int* columns,
 
-    float* rank,
+    const float* rank,
 
     float* new_rank,
 
@@ -42,26 +69,30 @@ void pagerank_kernel(
 
 
     int end =
-        row_offsets[node+1];
+        row_offsets[node + 1];
 
 
 
-    float value=0;
+    float contribution = 0.0f;
 
 
 
-    for(int i=start;i<end;i++)
+    for(int edge=start; edge<end; edge++)
     {
 
-        value +=
-            rank[columns[i]];
+        int neighbor =
+            columns[edge];
+
+
+        contribution +=
+            rank[neighbor];
 
     }
 
 
 
-    new_rank[node]=
-        0.85f*value
+    new_rank[node] =
+        0.85f * contribution
         +
         0.15f;
 
@@ -70,13 +101,26 @@ void pagerank_kernel(
 
 
 
+// ============================================================
+// Main Benchmark Function
+//
+// Four allocation strategies:
+//
+// 1. cudaMalloc
+// 2. cudaMallocAsync
+// 3. Memory Pool
+// 4. Unified Memory
+//
+// ============================================================
+
+
 float runPageRank(
 
     CSRGraph& graph,
 
     int iterations,
 
-    AllocatorType type
+    AllocatorType allocator_type
 
 )
 {
@@ -85,43 +129,11 @@ float runPageRank(
     cudaStream_t stream;
 
 
-    cudaStreamCreate(
-        &stream
+    CUDA_CHECK(
+        cudaStreamCreate(
+            &stream
+        )
     );
-
-
-
-    GPUAllocator* allocator=nullptr;
-
-
-
-    if(type==AllocatorType::CUDA_MALLOC)
-    {
-
-        allocator =
-        new CudaMallocAllocator();
-
-    }
-
-
-    else if(type==AllocatorType::CUDA_ASYNC)
-    {
-
-        allocator =
-        new CudaAsyncAllocator(
-            stream
-        );
-
-    }
-
-
-    else if(type==AllocatorType::UNIFIED)
-    {
-
-        allocator =
-        new UnifiedAllocator();
-
-    }
 
 
 
@@ -134,68 +146,275 @@ float runPageRank(
 
 
 
-    int* d_rows =
-    (int*)allocator->allocate(
-        (nodes+1)*sizeof(int)
+    GPUAllocator* allocator = nullptr;
+
+
+    GPUMemoryPool* pool = nullptr;
+
+
+
+    // ---------------------------------------------------------
+    // Select allocator
+    // ---------------------------------------------------------
+
+    if(
+        allocator_type ==
+        AllocatorType::CUDA_MALLOC
+    )
+    {
+
+        allocator =
+            new CudaMallocAllocator();
+
+    }
+
+
+    else if(
+        allocator_type ==
+        AllocatorType::CUDA_ASYNC
+    )
+    {
+
+        allocator =
+            new CudaAsyncAllocator(
+                stream
+            );
+
+    }
+
+
+    else if(
+        allocator_type ==
+        AllocatorType::UNIFIED
+    )
+    {
+
+        allocator =
+            new UnifiedAllocator();
+
+    }
+
+
+    else if(
+        allocator_type ==
+        AllocatorType::MEMORY_POOL
+    )
+    {
+
+        pool =
+            new GPUMemoryPool(
+                256 * 1024 * 1024
+            );
+
+    }
+
+
+
+    int* d_rows;
+
+    int* d_columns;
+
+    float* d_rank;
+
+    float* d_next;
+
+
+
+    size_t rows_bytes =
+        (nodes + 1)
+        *
+        sizeof(int);
+
+
+
+    size_t columns_bytes =
+        edges
+        *
+        sizeof(int);
+
+
+
+    size_t rank_bytes =
+        nodes
+        *
+        sizeof(float);
+
+
+
+    // ---------------------------------------------------------
+    // Allocate GPU memory
+    // ---------------------------------------------------------
+
+    if(pool)
+    {
+
+
+        d_rows =
+        static_cast<int*>(
+            pool->allocate(
+                rows_bytes
+            )
+        );
+
+
+        d_columns =
+        static_cast<int*>(
+            pool->allocate(
+                columns_bytes
+            )
+        );
+
+
+        d_rank =
+        static_cast<float*>(
+            pool->allocate(
+                rank_bytes
+            )
+        );
+
+
+        d_next =
+        static_cast<float*>(
+            pool->allocate(
+                rank_bytes
+            )
+        );
+
+    }
+
+    else
+
+    {
+
+
+        d_rows =
+        static_cast<int*>(
+            allocator->allocate(
+                rows_bytes
+            )
+        );
+
+
+        d_columns =
+        static_cast<int*>(
+            allocator->allocate(
+                columns_bytes
+            )
+        );
+
+
+        d_rank =
+        static_cast<float*>(
+            allocator->allocate(
+                rank_bytes
+            )
+        );
+
+
+        d_next =
+        static_cast<float*>(
+            allocator->allocate(
+                rank_bytes
+            )
+        );
+
+    }
+
+
+
+    // ---------------------------------------------------------
+    // Copy graph data
+    // ---------------------------------------------------------
+
+
+    CUDA_CHECK(
+        cudaMemcpy(
+            d_rows,
+            graph.row_offsets.data(),
+            rows_bytes,
+            cudaMemcpyHostToDevice
+        )
     );
 
 
-    int* d_cols =
-    (int*)allocator->allocate(
-        edges*sizeof(int)
-    );
 
-
-    float* rank =
-    (float*)allocator->allocate(
-        nodes*sizeof(float)
-    );
-
-
-    float* next =
-    (float*)allocator->allocate(
-        nodes*sizeof(float)
+    CUDA_CHECK(
+        cudaMemcpy(
+            d_columns,
+            graph.column_indices.data(),
+            columns_bytes,
+            cudaMemcpyHostToDevice
+        )
     );
 
 
 
-    cudaMemcpy(
-        d_rows,
-        graph.row_offsets.data(),
-        (nodes+1)*sizeof(int),
-        cudaMemcpyHostToDevice
-    );
+    std::vector<float> initial_rank(
 
+        nodes,
 
-    cudaMemcpy(
-        d_cols,
-        graph.column_indices.data(),
-        edges*sizeof(int),
-        cudaMemcpyHostToDevice
+        1.0f / nodes
+
     );
 
 
 
-    int threads=256;
+    CUDA_CHECK(
+        cudaMemcpy(
+            d_rank,
+            initial_rank.data(),
+            rank_bytes,
+            cudaMemcpyHostToDevice
+        )
+    );
 
 
-    int blocks=
-        (nodes+threads-1)
+
+    CUDA_CHECK(
+        cudaMemset(
+            d_next,
+            0,
+            rank_bytes
+        )
+    );
+
+
+
+    // ---------------------------------------------------------
+    // Launch benchmark
+    // ---------------------------------------------------------
+
+
+    cudaEvent_t start;
+
+    cudaEvent_t stop;
+
+
+
+    CUDA_CHECK(
+        cudaEventCreate(&start)
+    );
+
+
+    CUDA_CHECK(
+        cudaEventCreate(&stop)
+    );
+
+
+
+    CUDA_CHECK(
+        cudaEventRecord(start)
+    );
+
+
+
+    int threads = 256;
+
+
+    int blocks =
+        (nodes + threads - 1)
         /
         threads;
-
-
-
-    cudaEvent_t start,stop;
-
-
-    cudaEventCreate(&start);
-
-    cudaEventCreate(&stop);
-
-
-
-    cudaEventRecord(start);
 
 
 
@@ -203,22 +422,46 @@ float runPageRank(
     {
 
 
-        pagerank_kernel<<<blocks,threads>>>(
-            d_rows,
-            d_cols,
-            rank,
-            next,
-            nodes
+        CUDA_CHECK(
+            cudaMemset(
+                d_next,
+                0,
+                rank_bytes
+            )
         );
 
 
-        cudaDeviceSynchronize();
+
+        pagerank_kernel<<<
+            blocks,
+            threads,
+            0,
+            stream
+        >>>(
+
+            d_rows,
+
+            d_columns,
+
+            d_rank,
+
+            d_next,
+
+            nodes
+
+        );
+
+
+
+        CUDA_CHECK(
+            cudaGetLastError()
+        );
 
 
 
         std::swap(
-            rank,
-            next
+            d_rank,
+            d_next
         );
 
 
@@ -226,41 +469,79 @@ float runPageRank(
 
 
 
-    cudaEventRecord(stop);
+    CUDA_CHECK(
+        cudaEventRecord(stop)
+    );
 
 
-    cudaEventSynchronize(stop);
-
-
-
-    float ms;
-
-
-    cudaEventElapsedTime(
-        &ms,
-        start,
-        stop
+    CUDA_CHECK(
+        cudaEventSynchronize(stop)
     );
 
 
 
-    allocator->deallocate(d_rows);
-
-    allocator->deallocate(d_cols);
-
-    allocator->deallocate(rank);
-
-    allocator->deallocate(next);
+    float milliseconds;
 
 
 
-    delete allocator;
+    CUDA_CHECK(
+        cudaEventElapsedTime(
+            &milliseconds,
+            start,
+            stop
+        )
+    );
 
 
-    cudaStreamDestroy(stream);
+
+    // ---------------------------------------------------------
+    // Cleanup
+    // ---------------------------------------------------------
+
+
+    if(pool)
+    {
+
+        delete pool;
+
+    }
+
+    else
+
+    {
+
+        allocator->deallocate(
+            d_rows
+        );
+
+
+        allocator->deallocate(
+            d_columns
+        );
+
+
+        allocator->deallocate(
+            d_rank
+        );
+
+
+        allocator->deallocate(
+            d_next
+        );
+
+
+        delete allocator;
+
+    }
 
 
 
-    return ms;
+    cudaStreamDestroy(
+        stream
+    );
+
+
+
+    return milliseconds;
 
 }
