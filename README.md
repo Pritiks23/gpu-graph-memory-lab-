@@ -1,4 +1,6 @@
 # GPU Graph Memory Optimization Lab
+<img width="1024" height="577" alt="image" src="https://github.com/user-attachments/assets/1a3c7984-8b67-405f-9686-454a9fe521ae" />
+
 
 A CUDA-based benchmark framework that studies how GPU memory allocation strategies impact graph analytics workloads.
 
