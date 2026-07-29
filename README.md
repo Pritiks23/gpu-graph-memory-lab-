@@ -10,16 +10,55 @@ The project implements PageRank on real-world graph datasets and compares:
 4. Unified Memory
 
 
-## Motivation
+A CUDA-based benchmark framework that studies GPU memory allocation strategies for large-scale graph analytics workloads using PageRank and graph traversal algorithms.
 
-Modern GPU workloads are often limited not only by computation, but by memory management.
+Real-world motivation
+Companies process huge graphs:
 
-Graph analytics workloads are especially challenging because:
+Examples:
 
-- graph structures are irregular
-- memory access patterns are unpredictable
-- temporary buffers are frequently created
-- GPU memory allocation overhead can reduce utilization
+Social networks → user connections
+Fraud detection → transaction networks
+Recommendation systems → user-item graphs
+Scientific computing → mesh graphs
+Cybersecurity → network graphs
+A graph workload has a unique GPU challenge:
+
+memory access dominates computation.
+
+Unlike matrix multiplication:
+
+A × B
+where memory access is predictable:
+
+Graphs look like:
+
+Node 0
+ |
+ +---- Node 45
+ |
+ +---- Node 9203
+ |
+ +---- Node 17
+The GPU constantly jumps around memory. 
+
+Core idea
+All four versions run:
+
+SAME GRAPH
+
+SAME PAGE RANK ALGORITHM
+
+SAME GPU KERNEL
+
+
+ONLY MEMORY ALLOCATION CHANGES
+This is important.
+
+Your experiment is controlled.
+
+
+
 
 
 This project investigates:
@@ -35,4 +74,28 @@ The benchmark uses PageRank.
 
 PageRank repeatedly updates node importance scores by distributing rank values across graph edges.
 
-The computation:
+
+
+
+
+What the finished project does
+You will run:
+
+./build/graph_benchmark --allocator cudaMalloc
+then:
+
+./build/graph_benchmark --allocator cudaMallocAsync
+then:
+
+./build/graph_benchmark --allocator memory_pool
+then:
+
+./build/graph_benchmark --allocator unified_memory
+All four will run:
+
+same graph
+same PageRank kernel
+same number of iterations
+same GPU
+
+Only memory management changes.
