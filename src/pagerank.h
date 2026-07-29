@@ -1,26 +1,82 @@
 #pragma once
 
 
-#include "graph.h"
+#include <cuda_runtime.h>
 
 
-enum class AllocatorType
+class GPUMemoryPool
 {
 
-    CUDA_MALLOC,
 
-    CUDA_ASYNC,
+private:
 
-    MEMORY_POOL,
+    char* memory;
 
-    UNIFIED
+    size_t capacity;
+
+    size_t offset;
+
+
+
+public:
+
+
+    GPUMemoryPool(size_t bytes)
+        :
+        capacity(bytes),
+        offset(0)
+    {
+
+        cudaMalloc(
+            &memory,
+            bytes
+        );
+
+    }
+
+
+
+    ~GPUMemoryPool()
+    {
+
+        cudaFree(memory);
+
+    }
+
+
+
+    void* allocate(size_t bytes)
+    {
+
+
+        if(offset + bytes > capacity)
+        {
+
+            throw std::runtime_error(
+                "Pool exhausted"
+            );
+
+        }
+
+
+        void* ptr =
+            memory + offset;
+
+
+        offset += bytes;
+
+
+        return ptr;
+
+    }
+
+
+
+    void reset()
+    {
+
+        offset=0;
+
+    }
 
 };
-
-
-
-float runPageRank(
-    CSRGraph& graph,
-    int iterations,
-    AllocatorType type
-);
