@@ -3,15 +3,29 @@
 
 
 #include "graph.h"
-#include "benchmark.h"
-#include "memory_pool.h"
+#include "pagerank.h"
 
 
+AllocatorType parseAllocator(
+    std::string name
+)
+{
 
-float runPageRankCudaMalloc(
-    CSRGraph& graph,
-    int iterations
-);
+    if(name=="cudaMalloc")
+        return AllocatorType::CUDA_MALLOC;
+
+
+    if(name=="cudaMallocAsync")
+        return AllocatorType::CUDA_ASYNC;
+
+
+    if(name=="unified_memory")
+        return AllocatorType::UNIFIED;
+
+
+    return AllocatorType::MEMORY_POOL;
+
+}
 
 
 
@@ -19,50 +33,21 @@ int main(int argc,char** argv)
 {
 
 
-    Benchmark::printGPUInfo();
+    std::string allocator="cudaMalloc";
 
 
-
-    std::string allocator =
-        "cudaMalloc";
-
-
-    std::string graph_file =
+    std::string file=
         "../data/cit-HepTh.txt";
 
 
 
-    for(int i=1;i<argc;i++)
+    for(int i=0;i<argc;i++)
     {
 
-        std::string arg = argv[i];
-
-
-        if(arg=="--allocator")
-        {
-
-            allocator =
-                argv[++i];
-
-        }
-
-
-        if(arg=="--graph")
-        {
-
-            graph_file =
-                argv[++i];
-
-        }
+        if(std::string(argv[i])=="--allocator")
+            allocator=argv[i+1];
 
     }
-
-
-
-    std::cout
-    << "\nAllocator: "
-    << allocator
-    << "\n";
 
 
 
@@ -70,81 +55,28 @@ int main(int argc,char** argv)
 
 
     graph.loadFromEdgeList(
-        graph_file
+        file
     );
 
 
 
-    int iterations = 100;
-
-
-
-    size_t before =
-        Benchmark::getFreeMemory();
-
-
-
-    float runtime;
-
-
-
-    if(allocator=="cudaMalloc")
-    {
-
-        runtime =
-        runPageRankCudaMalloc(
+    float runtime =
+        runPageRank(
             graph,
-            iterations
+            100,
+            parseAllocator(
+                allocator
+            )
         );
 
-    }
-
-
-    else
-    {
-
-        std::cout
-        <<
-        "Allocator not implemented yet\n";
-
-
-        return 0;
-
-    }
-
-
-
-    size_t after =
-        Benchmark::getFreeMemory();
-
 
 
     std::cout
-    << "\n========== RESULTS ==========\n";
-
-
-    std::cout
-    << "Runtime: "
+    << "\nAllocator: "
+    << allocator
+    << "\nRuntime: "
     << runtime
     << " ms\n";
 
-
-    std::cout
-    << "Avg iteration: "
-    << runtime/iterations
-    << " ms\n";
-
-
-    std::cout
-    << "Memory used: "
-    << (before-after)
-       /
-       1024.0
-       /
-       1024.0
-    << " MB\n";
-
-
-    return 0;
 
 }
