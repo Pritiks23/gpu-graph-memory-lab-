@@ -99,3 +99,32 @@ same number of iterations
 same GPU
 
 Only memory management changes.
+
+
+
+
+
+
+
+
+Benchmark Metrics
+
+The framework measures:
+
+Runtime
+total execution time
+average iteration time
+Memory
+initial GPU memory
+peak memory usage
+Allocation
+allocation count
+allocated bytes
+allocation overhead
+GPU Metrics
+
+Using NVML:
+
+GPU utilization
+power usage
+memory usage
