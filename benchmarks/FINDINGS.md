@@ -10,7 +10,7 @@
 </td>
 
 <td align="center">
-<b>Runtime Results</b><br>
+<b>cudaMallocAsync and Memory Pool</b><br>
 <img src="https://github.com/user-attachments/assets/95445bb3-ac94-4ad2-821e-831057d17861" width="500"/>
 </td>
 
