@@ -125,8 +125,3 @@ allocated bytes
 allocation overhead
 GPU Metrics
 
-Using NVML:
-
-GPU utilization
-power usage
-memory usage
