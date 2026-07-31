@@ -1,0 +1,89 @@
+(main) root@C.46413081:/workspace/gpu-graph-memory-lab-/build$ ./graph_benchmark --allocator cudaMalloc
+====================================
+ GPU Graph Memory Optimization Lab
+====================================
+
+GPU: NVIDIA GeForce RTX 3090
+Memory: 24124 MB
+
+Selected allocator: cudaMalloc
+Loaded graph
+Nodes: 27770
+Edges: 352807
+GPU Memory Used After Allocation: 267.125 MB
+
+========== RESULTS ==========
+Allocator: cudaMalloc
+Iterations: 100
+Total Runtime: 5.18144 ms
+Average Iteration: 0.0518144 ms
+Memory measurement: See allocation report above
+=============================
+(main) root@C.46413081:/workspace/gpu-graph-memory-lab-/build$ ./graph_benchmark --allocator cudaMallocAsync
+====================================
+ GPU Graph Memory Optimization Lab
+====================================
+
+GPU: NVIDIA GeForce RTX 3090
+Memory: 24124 MB
+
+Selected allocator: cudaMallocAsync
+Loaded graph
+Nodes: 27770
+Edges: 352807
+GPU Memory Used After Allocation: 297.125 MB
+
+========== RESULTS ==========
+Allocator: cudaMallocAsync
+Iterations: 100
+Total Runtime: 4.83533 ms
+Average Iteration: 0.0483533 ms
+Memory measurement: See allocation report above
+=============================
+(main) root@C.46413081:/workspace/gpu-graph-memory-lab-/build$ ./graph_benchmark --allocator memory_pool
+====================================
+ GPU Graph Memory Optimization Lab
+====================================
+
+GPU: NVIDIA GeForce RTX 3090
+Memory: 24124 MB
+
+Selected allocator: memory_pool
+Loaded graph
+Nodes: 27770
+Edges: 352807
+GPU Memory Pool initialized: 256 MB
+GPU Memory Used After Allocation: 521.125 MB
+
+========== RESULTS ==========
+Allocator: memory_pool
+Iterations: 100
+Total Runtime: 4.992 ms
+Average Iteration: 0.04992 ms
+Memory measurement: See allocation report above
+=============================
+(main) root@C.46413081:/workspace/gpu-graph-memory-lab-/build$ ./graph_benchmark --allocator unified_memory
+====================================
+ GPU Graph Memory Optimization Lab
+====================================
+
+GPU: NVIDIA GeForce RTX 3090
+Memory: 24124 MB
+
+Selected allocator: unified_memory
+Loaded graph
+Nodes: 27770
+Edges: 352807
+GPU Memory Used After Allocation: 265.125 MB
+
+========== RESULTS ==========
+Allocator: unified_memory
+Iterations: 100
+Total Runtime: 5.4999 ms
+Average Iteration: 0.054999 ms
+Memory measurement: See allocation report above
+=============================
+(main) root@C.46413081:/workspace/gpu-graph-memory-lab-/build$
+
+
+
