@@ -1,9 +1,5 @@
-allocator,dataset,iterations,runtime_ms
-
-cudaMalloc,cit-HepTh,100,0
-
-cudaMallocAsync,cit-HepTh,100,0
-
-memory_pool,cit-HepTh,100,0
-
-unified_memory,cit-HepTh,100,0
+allocator,memory_mb,total_runtime_ms,avg_iteration_ms
+cudaMalloc,267.125,5.18144,0.0518144
+cudaMallocAsync,297.125,4.83533,0.0483533
+memory_pool,521.125,4.992,0.04992
+unified_memory,265.125,5.4999,0.054999
