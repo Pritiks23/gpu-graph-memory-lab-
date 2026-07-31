@@ -15,7 +15,7 @@
 </td>
 
 <td align="center">
-<b>GPU Memory Analysis</b><br>
+<b>Unified Memory</b><br>
 <img src="https://github.com/user-attachments/assets/330ef268-9e8e-42a3-a66a-991fb0147484" width="500"/>
 </td>
 </tr>
